@@ -44,7 +44,18 @@ import streamlit as st
 import numpy as np
 from omegaconf import OmegaConf
 import time
+import db
+from datetime import datetime
 from inference import load_model, get_example,  inference
+
+COMMENT_TEMPLATE_MD = """{} - {}
+> {}"""
+
+
+def space(num_lines=1):
+    """Adds empty lines to the Streamlit app."""
+    for _ in range(num_lines):
+        st.write("")
 
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -57,7 +68,7 @@ model = load_model(cfg)
 
 st.title("Welcome to Doctor DeepOr!")
 st.markdown(
-    "DeepOr is diagnosis system developed by the team of [HILAB](http://www.healthinformaticslab.org). It orchestrates the deep learning's **representation capability** and conventional machine learning's **interpretability** into an end-to-end framework. This framework not only delivers better clinical prediction models, but also explicitly report the biomedical meaningful **biomarkers** for the prediction tasks. If you have any questions, please contact [Ruochi Zhang](mailto:zrc720@gmail.com) or [Fengfeng Zhou](mailto:FengfengZhou@gmail.com)")
+    "DeepOr is a diagnosis system developed by the team of [HILAB](http://www.healthinformaticslab.org). It orchestrates the deep learning's **representation capability** and conventional machine learning's **interpretability** into an end-to-end framework. This framework not only delivers better clinical prediction models, but also explicitly report the biomedical meaningful **biomarkers** for the prediction tasks. If you have any questions, please contact [Ruochi Zhang](mailto:zrc720@gmail.com) or [Fengfeng Zhou](mailto:FengfengZhou@gmail.com)")
 
 uploaded_file = st.file_uploader("Upload clinical Data for a patient")
 
@@ -81,6 +92,8 @@ if uploaded_file is not None:
             uploaded_file.name, uploaded_file.name)
         res = inference(cfg, model, ts_tensor, demo_tensor)
 
+        space(2)
+
         mortality = ["False", "True"]
 
         st.subheader("Prediction")
@@ -92,6 +105,8 @@ if uploaded_file is not None:
         with st.spinner('Loading for report...'):
             time.sleep(2)
 
+        space(2)
+
         # display ICU data
         st.subheader("ICU stay for the predicted patient")
         chart_data = pd.DataFrame(
@@ -100,7 +115,8 @@ if uploaded_file is not None:
         )
         st.line_chart(chart_data)
 
-
+        space(2)
+        
         # display Demographic data
         st.subheader("Demographic data for the predicted patient")
         table_data = pd.DataFrame(
@@ -108,6 +124,8 @@ if uploaded_file is not None:
             columns=cfg.model.demo_feature_names
         )
         st.table(table_data)
+
+        space(2)
 
 
         # display Important Factors
@@ -117,3 +135,41 @@ if uploaded_file is not None:
         st.area_chart(factor_data)
     except:
         st.error("Please Check Your Uploaded Files")
+
+
+# Comments part
+
+# conn = db.connect()
+# comments = db.collect(conn)
+
+# with st.expander("💬 Open comments"):
+
+#     # Show comments
+
+#     st.write("**Comments:**")
+
+#     for index, entry in enumerate(comments.itertuples()):
+#         st.markdown(COMMENT_TEMPLATE_MD.format(
+#             entry.name, entry.date, entry.comment))
+
+#         is_last = index == len(comments) - 1
+#         is_new = "just_posted" in st.session_state and is_last
+#         if is_new:
+#             st.success("☝️ Your comment was successfully posted.")
+
+#     space(2)
+
+#     # Insert comment
+
+#     st.write("**Add your own comment:**")
+#     form = st.form("comment")
+#     name = form.text_input("Name")
+#     comment = form.text_area("Comment")
+#     submit = form.form_submit_button("Add comment")
+
+#     if submit:
+#         date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+#         db.insert(conn, [[name, comment, date]])
+#         if "just_posted" not in st.session_state:
+#             st.session_state["just_posted"] = True
+#         st.experimental_rerun()
